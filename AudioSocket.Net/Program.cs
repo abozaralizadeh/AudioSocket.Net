@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
+using AudioSocket.Net;
 
 const int BUFFER_SIZE = 1_024;
 
@@ -17,14 +18,66 @@ const byte KindError = 0xff;
 //var lengthbytes = new byte[] { 0x00, 0x10 };  
 //var x = ToDecimal(lengthbytes);
 
-while (true)
+/*while (true)
 {
     try
     {
         await ListenerSocket();
     }
     catch { }
+}*/
+
+
+// TCP server port
+int port = 5044;
+if (args.Length > 0)
+    port = int.Parse(args[0]);
+
+Console.WriteLine($"TCP server port: {port}");
+
+Console.WriteLine();
+
+// Create a new TCP chat server
+var server = new AudioSocketServer("127.0.0.1", port);
+
+// Start the server
+Console.Write("Server starting...");
+server.Start();
+Console.WriteLine("Done!");
+
+Console.WriteLine("Press Enter to stop the server or '!' to restart the server...");
+
+// Perform text input
+for (; ; )
+{
+    string line = Console.ReadLine();
+    if (string.IsNullOrEmpty(line))
+        break;
+
+    // Restart the server
+    if (line == "!")
+    {
+        Console.Write("Server restarting...");
+        server.Restart();
+     
+        Console.WriteLine("Done!");
+        continue;
+    }
+
+    // Multicast admin message to all sessions
+    line = "(admin) " + line;
+    server.Multicast(line);
 }
+
+// Stop the server
+Console.Write("Server stopping...");
+server.Stop();
+Console.WriteLine("Done!");
+
+
+
+
+
 
 
 async Task StartSocket() {
