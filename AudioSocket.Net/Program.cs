@@ -45,9 +45,9 @@ Console.Write("Server starting...");
 server.Start();
 Console.WriteLine("Done!");
 
-Console.WriteLine("Press Enter to stop the server or '!' to restart the server...");
+//Console.WriteLine("Press Enter to stop the server or '!' to restart the server...");
 
-// Perform text input
+//Perform text input
 for (; ; )
 {
     string line = Console.ReadLine();
@@ -59,17 +59,18 @@ for (; ; )
     {
         Console.Write("Server restarting...");
         server.Restart();
-     
+
         Console.WriteLine("Done!");
         continue;
     }
 
     // Multicast admin message to all sessions
     line = "(admin) " + line;
-    server.Multicast(line);
+   // server.Multicast(line);
 }
 
 // Stop the server
+
 Console.Write("Server stopping...");
 server.Stop();
 Console.WriteLine("Done!");

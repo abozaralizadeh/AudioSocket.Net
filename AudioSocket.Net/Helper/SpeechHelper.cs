@@ -7,10 +7,70 @@ namespace AudioSocket.Net.Helper
     public class SpeechHelper
     {
         private readonly IConfiguration configuration;
+        private SpeechConfig speechConfig;
+        private PushAudioInputStream audioInputStream;
+        private AudioConfig audioConfig;
+        private SpeechRecognizer speechRecognizer;
+        private TaskCompletionSource<int> stopRecognition;
 
-        public SpeechHelper()
+        public SpeechHelper(string id=null)
         {
+            if (id is null)
+                id = string.Empty;
             configuration = SettingHelper.GetConfigurations();
+            speechConfig = SpeechConfig.FromSubscription(configuration.GetValue<string>("CognitiveServices:SubscriptionKey"), configuration.GetValue<string>("CognitiveServices:Region"));
+            speechConfig.EndpointId = configuration.GetValue<string>("CognitiveServices:EndpointId");
+            speechConfig.SpeechRecognitionLanguage = configuration.GetValue<string>("CognitiveServices:SpeechRecognitionLanguage");
+            var audioFormat = AudioStreamFormat.GetWaveFormatPCM(8000, 16, 1);
+            audioInputStream = AudioInputStream.CreatePushStream(audioFormat);
+            audioConfig = AudioConfig.FromStreamInput(audioInputStream);
+            speechRecognizer = new SpeechRecognizer(speechConfig, audioConfig);
+            //speechConfig.SetProperty(PropertyId.SpeechServiceConnection_InitialSilenceTimeoutMs, "1000");
+            //speechConfig.SetProperty(PropertyId.SpeechServiceResponse_PostProcessingOption, "TrueText");
+            //speechConfig.SetProperty(PropertyId.SpeechServiceResponse_StablePartialResultThreshold, "2");
+            //speechConfig.SetProperty(speechConfig. .PropertyId.SpeechServiceConnection_InitialSilenceTimeoutMs, "10000"); // 10000ms //PropertyId.SpeechServiceResponse_StablePartialResultThreshold
+            stopRecognition = new TaskCompletionSource<int>();
+            speechRecognizer.Recognizing += (s, e) =>
+            {
+                Console.WriteLine($"{id} RECOGNIZING: Text={e.Result.Text}");
+            };
+
+            speechRecognizer.Recognized += (s, e) =>
+            {
+                if (e.Result.Reason == ResultReason.RecognizedSpeech)
+                {
+                    Console.WriteLine($"{id} RECOGNIZED: Text={e.Result.Text}");
+                }
+                else if (e.Result.Reason == ResultReason.NoMatch)
+                {
+                    Console.WriteLine($"{id} NOMATCH: Speech could not be recognized.");
+                }
+                //speechRecognizer.StartContinuousRecognitionAsync();
+            };
+
+            speechRecognizer.Canceled += (s, e) =>
+            {
+                Console.WriteLine($"{id} CANCELED: Reason={e.Reason}");
+
+                if (e.Reason == CancellationReason.Error)
+                {
+                    Console.WriteLine($"CANCELED: ErrorCode={e.ErrorCode}");
+                    Console.WriteLine($"CANCELED: ErrorDetails={e.ErrorDetails}");
+                    Console.WriteLine($"CANCELED: Did you set the speech resource key and region values?");
+                }
+
+                stopRecognition.TrySetResult(0);
+                //speechRecognizer.StartContinuousRecognitionAsync();
+            };
+
+            speechRecognizer.SessionStopped += (s, e) =>
+            {
+                Console.WriteLine($"\n{id}  Session stopped event.");
+                stopRecognition.TrySetResult(0);
+                //speechRecognizer.StartContinuousRecognitionAsync();
+            };
+
+            speechRecognizer.StartContinuousRecognitionAsync();
         }
 
         public async Task<SpeechSynthesisResult> ConvertTextToSpeechAsync(string text)
@@ -60,11 +120,17 @@ namespace AudioSocket.Net.Helper
             }
         }
 
+        public void FromStream(byte[] readBytes)
+        {
+            if (readBytes.Length > 0)
+                this.audioInputStream.Write(readBytes, readBytes.Length);
+        }
+
         //Test recognition with audio stream
         public async Task RecognitionWithPushAudioStreamAsync()
         {
             var config = SpeechConfig.FromSubscription(configuration.GetValue<string>("CognitiveServices:SubscriptionKey"), configuration.GetValue<string>("CognitiveServices:Region"));
-            config.EndpointId =//configuration.GetValue<string>("CognitiveServices:EndpointId");
+            config.EndpointId = configuration.GetValue<string>("CognitiveServices:EndpointId");
             config.SpeechRecognitionLanguage = configuration.GetValue<string>("CognitiveServices:SpeechRecognitionLanguage");
 
             var stopRecognition = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
