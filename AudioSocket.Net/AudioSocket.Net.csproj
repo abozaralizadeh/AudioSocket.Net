@@ -4,10 +4,18 @@
     <TargetFramework>net7.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>c0973f36-d0cc-4029-b804-7172d99d6550</UserSecretsId>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(RunConfiguration)' == 'http' " />
   <ItemGroup>
     <PackageReference Include="NetCoreServer" Version="7.0.0" />
+    <PackageReference Include="Microsoft.CognitiveServices.Speech" Version="1.26.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Remove="Helper\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Helper\" />
   </ItemGroup>
 </Project>

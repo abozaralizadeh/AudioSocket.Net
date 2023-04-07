@@ -45,9 +45,9 @@ Console.Write("Server starting...");
 server.Start();
 Console.WriteLine("Done!");
 
-Console.WriteLine("Press Enter to stop the server or '!' to restart the server...");
+//Console.WriteLine("Press Enter to stop the server or '!' to restart the server...");
 
-// Perform text input
+//Perform text input
 for (; ; )
 {
     string line = Console.ReadLine();
@@ -59,28 +59,27 @@ for (; ; )
     {
         Console.Write("Server restarting...");
         server.Restart();
-     
+
         Console.WriteLine("Done!");
         continue;
     }
 
     // Multicast admin message to all sessions
     line = "(admin) " + line;
-    server.Multicast(line);
+   // server.Multicast(line);
 }
 
 // Stop the server
+
 Console.Write("Server stopping...");
 server.Stop();
 Console.WriteLine("Done!");
 
 
+#region TestSocket
 
-
-
-
-
-async Task StartSocket() {
+async Task StartSocket()
+{
 
     // ToDo Delete
     File.Delete("sampleoutputstream.slin");
@@ -89,7 +88,7 @@ async Task StartSocket() {
     //IPHostEntry ipHostInfo = await Dns.GetHostEntryAsync("localhost");
 
 
-    IPAddress ipAddress = new IPAddress(new byte[] { 0x7f, 0x00, 0x00, 0x01}); //ipHostInfo.AddressList[0];
+    IPAddress ipAddress = new IPAddress(new byte[] { 0x7f, 0x00, 0x00, 0x01 }); //ipHostInfo.AddressList[0];
 
     IPEndPoint ipEndPoint = new(ipAddress, 5044);
 
@@ -106,7 +105,7 @@ async Task StartSocket() {
     var currentIndex = 0;
     var remained = 0;
     byte? lastType = null;
-    
+
 
     //await handler.SendAsync(terminateBytes, 0);
 
@@ -162,7 +161,7 @@ async Task StartSocket() {
                         var errorCode = buffer.Take(new Range(3 + currentIndex, (Index)(3 + currentIndex + length)));
                         var errorCodeString = ByteArrayToString(errorCode.ToArray());
                         // ToDo handle the error
-                        currentIndex +=  (int)(3 + length);
+                        currentIndex += (int)(3 + length);
                     }
 
                     else if (lastType == KindSlin)
@@ -201,7 +200,8 @@ async Task StartSocket() {
                             var fileBytes = File.ReadAllBytes(path);
                             File.WriteAllBytes("sampleoutputstream.slin", fileBytes.Concat(payloadToStream).ToArray());
                         }
-                        catch {
+                        catch
+                        {
                             File.WriteAllBytes("sampleoutputstream.slin", payloadToStream);
                         }
                         // event arrived!
@@ -221,7 +221,9 @@ async Task StartSocket() {
             }
 
         }
-    } catch (Exception ex) {
+    }
+    catch (Exception ex)
+    {
         Console.WriteLine(ex);
         listener.Shutdown(SocketShutdown.Both);
     }
@@ -285,7 +287,7 @@ async Task ListenerSocket()
             {
                 var length = ToDecimal(buffer.Take(new Range(1, 3)).ToArray());
 
-                var bufferUUID = new byte[(int) length];
+                var bufferUUID = new byte[(int)length];
                 received = await handler.ReceiveAsync(bufferUUID, SocketFlags.None);
                 uuidString = ByteArrayToString(bufferUUID.ToArray());
 
@@ -307,7 +309,7 @@ async Task ListenerSocket()
             {
                 Console.WriteLine("audio received");
 
-                var length = ToDecimal(buffer.Take(new Range(1 , 3)).ToArray());
+                var length = ToDecimal(buffer.Take(new Range(1, 3)).ToArray());
                 var payloadToStream = new byte[(int)length];
                 received = await handler.ReceiveAsync(payloadToStream, SocketFlags.None);
 
@@ -358,3 +360,8 @@ static string ByteArrayToString(byte[] ba)
 {
     return BitConverter.ToString(ba);
 }
+
+#endregion
+
+
+
