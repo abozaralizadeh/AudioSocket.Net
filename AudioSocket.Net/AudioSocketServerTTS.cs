@@ -9,11 +9,11 @@ using NetCoreServer;
 
 namespace AudioSocket.Net
 {
-    public class AudioSocketServer : TcpServer
+    public class AudioSocketServerTTS : TcpServer
     {
-        public AudioSocketServer(string address, int port) : base(address, port) {}
+        public AudioSocketServerTTS(string address, int port) : base(address, port) {}
 
-        protected override TcpSession CreateSession() { return new AudioSocketSession(this); }
+        protected override TcpSession CreateSession() { return new AudioSocketSessionTTS(this); }
 
         protected override void OnError(SocketError error)
         {
@@ -21,7 +21,7 @@ namespace AudioSocket.Net
         }
     }
 
-    class AudioSocketSession : TcpSession
+    class AudioSocketSessionTTS : TcpSession
     {
         const byte KindHangup = 0x00;
         const byte KindID = 0x01;
@@ -37,16 +37,13 @@ namespace AudioSocket.Net
 
         private byte[] sentbuffer { get; set; } = new byte[320];
 
-        private STTHelper sttHelper;
         private TTSHelper ttsHelper;
 
-        public AudioSocketSession(TcpServer server) : base(server) {
+        public AudioSocketSessionTTS(TcpServer server) : base(server) {
             CurrentIndex = 0;
             Remained = 0;
             LastType = null;
             UuidString = string.Empty;
-            sttHelper = new STTHelper(this);
-            
         }
 
         protected override void OnConnected()
@@ -130,26 +127,20 @@ namespace AudioSocket.Net
                             // TODO move to another file
                             // TODO get bottext from uuid
                             var ttsHelper = new TTSHelper(this, null);
-                            while (true) // Send audio from tts
+                            var size = ttsHelper.ConvertTextToSpeechAsync(sentbuffer);
+                            while (size > 0) // Send audio from tts
                             {
-                                var size = ttsHelper.ConvertTextToSpeechAsync(sentbuffer);
-
-                                if (size > 0)
-                                {
                                     var headerBytes = new byte[] { 0x10 };
 
                                     headerBytes = headerBytes.Concat(BitConverter.GetBytes(size)).ToArray();
                                     this.Send(headerBytes);
                                     this.Send(sentbuffer.Take((int)size).ToArray());
-                                }
-                                else
-                                {
-                                    var hangupBytes = new byte[] { 0x00, 0x00, 0x00 };
-                                    this.Send(hangupBytes);
-                                }
-
+                               
                             }
 
+                            var hangupBytes = new byte[] { 0x00, 0x00, 0x00 };
+                            this.Send(hangupBytes);
+                                
                             continue;
                         }
 
@@ -163,63 +154,15 @@ namespace AudioSocket.Net
                             var errorCodeString = ByteArrayToString(errorCode.ToArray());
                             // ToDo handle the error
                             CurrentIndex += (int)(3 + length);
+                            var hangupBytes = new byte[] { 0x00, 0x00, 0x00 };
+                            this.Send(hangupBytes);
                         }
 
                         else if (LastType == KindSlin)
                         {
-                            //Console.WriteLine($"Socket server received message: KindSlin 0x10");
-
-                            if (Remained == 0)
-                            {
-                                var length = ToDecimal(buffer.Take(new Range((int)(1 + CurrentIndex), (int)(3 + CurrentIndex))).ToArray());
-                                Remained = (int)length;
-                                CurrentIndex += 3;
-                            }
-
-                            byte[] payloadToStream;
-
-                            if (Remained > bufferSize - CurrentIndex)
-                            {
-                                payloadToStream = buffer.Take(new Range((int)CurrentIndex, (int)bufferSize)).ToArray();
-                                Remained = Remained - (bufferSize - CurrentIndex);
-                                CurrentIndex = bufferSize;
-                            }
-                            else
-                            {
-                                payloadToStream = buffer.Take(new Range((int)CurrentIndex, (int)(CurrentIndex + Remained))).ToArray();
-                                CurrentIndex = CurrentIndex + Remained;
-                                Remained = 0;
-                            }
-                            // ToDo Stream the data to STT
-                            sttHelper.FromStream(payloadToStream, Uuid);
-                            
-                            try
-                            {
-                                var path = "sampleoutputstream.slin";
-
-                                var fileBytes = File.ReadAllBytes(path);
-                                File.WriteAllBytes("sampleoutputstream.slin", fileBytes.Concat(payloadToStream).ToArray());
-                            }
-                            catch(Exception ex)
-                            {
-                                File.WriteAllBytes("sampleoutputstream.slin", payloadToStream);
-                            }
-                            // event arrived!
-                            // remained = 0;
-                            // currentIndex = 0;
-                            // var terminateBytes = new byte[] { 0x00, 0x00, 0x00 };
-                            // var x = terminateBytes.Take(new Range(0, 2));
-                            // break;
-
-                            //var echoBytes = new byte[] { 0x00, 0x00, 0x00 };
-                            //handler.SendAsync(echoBytes, 0).Ge;
-                            //Server.Multicast(echoBytes);
-                        }
-                        else
-                        {
-                            Console.WriteLine(
-                                $"Type Unrecognised");
-                            break;
+                            // Error
+                            var hangupBytes = new byte[] { 0x00, 0x00, 0x00 };
+                            this.Send(hangupBytes);
                         }
                     }
                 }
