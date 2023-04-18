@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Drawing;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -8,11 +9,11 @@ using NetCoreServer;
 
 namespace AudioSocket.Net
 {
-    public class AudioSocketServer : TcpServer
+    public class AudioSocketServerSTT : TcpServer
     {
-        public AudioSocketServer(string address, int port) : base(address, port) {}
+        public AudioSocketServerSTT(string address, int port) : base(address, port) {}
 
-        protected override TcpSession CreateSession() { return new AudioSocketSession(this); }
+        protected override TcpSession CreateSession() { return new AudioSocketSessionSTT(this); }
 
         protected override void OnError(SocketError error)
         {
@@ -20,7 +21,7 @@ namespace AudioSocket.Net
         }
     }
 
-    class AudioSocketSession : TcpSession
+    class AudioSocketSessionSTT : TcpSession
     {
         const byte KindHangup = 0x00;
         const byte KindID = 0x01;
@@ -31,16 +32,21 @@ namespace AudioSocket.Net
         public long Remained { get; set; }
         public byte? LastType { get; set; }
         public byte[]? LastBytes { get; set; } = null;
+        public byte[]? Uuid { get; set; } = null;
         public string UuidString { get; set; }
 
-        private SpeechHelper SpeechHelper;
+        private byte[] sentbuffer { get; set; } = new byte[320];
 
-        public AudioSocketSession(TcpServer server) : base(server) {
+        private STTHelper sttHelper;
+        private TTSHelper ttsHelper;
+
+        public AudioSocketSessionSTT(TcpServer server) : base(server) {
             CurrentIndex = 0;
             Remained = 0;
             LastType = null;
             UuidString = string.Empty;
-            SpeechHelper = new SpeechHelper($"{UuidString} - {Id.ToString()}");
+            sttHelper = new STTHelper(this);
+            
         }
 
         protected override void OnConnected()
@@ -117,8 +123,32 @@ namespace AudioSocket.Net
 
                             var length = ToDecimal(buffer.Take(new Range((int)(1 + CurrentIndex), (int)(3 + CurrentIndex))).ToArray());
                             var UUID = buffer.Take(new Range((int)(3 + CurrentIndex), (Index)(3 + CurrentIndex + length)));
+                            Uuid = UUID.ToArray();
                             UuidString = ByteArrayToString(UUID.ToArray());
                             CurrentIndex += (int)(3 + length);
+
+                            // TODO move to another file
+                            // TODO get bottext from uuid
+                            var ttsHelper = new TTSHelper(this, null);
+                            while (true) // Send audio from tts
+                            {
+                                var size = ttsHelper.ConvertTextToSpeechAsync(sentbuffer);
+
+                                if (size > 0)
+                                {
+                                    var headerBytes = new byte[] { 0x10 };
+
+                                    headerBytes = headerBytes.Concat(BitConverter.GetBytes(size)).ToArray();
+                                    this.Send(headerBytes);
+                                    this.Send(sentbuffer.Take((int)size).ToArray());
+                                }
+                                else
+                                {
+                                    var hangupBytes = new byte[] { 0x00, 0x00, 0x00 };
+                                    this.Send(hangupBytes);
+                                }
+
+                            }
 
                             continue;
                         }
@@ -161,7 +191,7 @@ namespace AudioSocket.Net
                                 Remained = 0;
                             }
                             // ToDo Stream the data to STT
-                            SpeechHelper.FromStream(payloadToStream);
+                            sttHelper.FromStream(payloadToStream, Uuid);
                             
                             try
                             {
