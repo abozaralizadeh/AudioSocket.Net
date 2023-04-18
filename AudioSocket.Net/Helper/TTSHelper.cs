@@ -15,13 +15,13 @@ namespace AudioSocket.Net.Helper
         private AudioConfig audioConfig;
         private SpeechRecognizer speechRecognizer;
         private TaskCompletionSource<int> stopRecognition;
-        private AudioDataStream? AudioDataStream;
+        private AudioDataStream AudioDataStream;
         private string Ssml;
         private byte[]? Uuid = null;
 
         public TTSHelper(TcpSession session, string ssml)
         {
-
+            var text = "Ciao Sono TOBI! come posso aiutarti?";
             if (ssml is null)
                 Ssml = $"""<speak version='1.0' xml:lang='it-IT'><voice xml:lang='it-IT' xml:gender='male' name='Giuseppe_5Neural'><lexicon uri='https://cvoiceproduks.blob.core.windows.net/acc-public-files/a5aa83643a5c4d3fb961fb09a6f82993/81583100-5cfd-43f7-8df4-67561d42031a.xml' />{text}</voice></speak>""";
             else
@@ -46,9 +46,9 @@ namespace AudioSocket.Net.Helper
 
         }
 
-        public async Task<byte[]> ConvertTextToSpeechAsync(int buffersize)
+        public uint ConvertTextToSpeechAsync(byte[] buffer)
         {
-            
+            return AudioDataStream.ReadData(buffer);
         }
     }
 }

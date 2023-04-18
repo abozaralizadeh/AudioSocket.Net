@@ -9,11 +9,11 @@ using NetCoreServer;
 
 namespace AudioSocket.Net
 {
-    public class AudioSocketServer : TcpServer
+    public class AudioSocketServerSTT : TcpServer
     {
-        public AudioSocketServer(string address, int port) : base(address, port) {}
+        public AudioSocketServerSTT(string address, int port) : base(address, port) {}
 
-        protected override TcpSession CreateSession() { return new AudioSocketSession(this); }
+        protected override TcpSession CreateSession() { return new AudioSocketSessionSTT(this); }
 
         protected override void OnError(SocketError error)
         {
@@ -21,7 +21,7 @@ namespace AudioSocket.Net
         }
     }
 
-    class AudioSocketSession : TcpSession
+    class AudioSocketSessionSTT : TcpSession
     {
         const byte KindHangup = 0x00;
         const byte KindID = 0x01;
@@ -40,7 +40,7 @@ namespace AudioSocket.Net
         private STTHelper sttHelper;
         private TTSHelper ttsHelper;
 
-        public AudioSocketSession(TcpServer server) : base(server) {
+        public AudioSocketSessionSTT(TcpServer server) : base(server) {
             CurrentIndex = 0;
             Remained = 0;
             LastType = null;

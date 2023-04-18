@@ -58,17 +58,7 @@ namespace AudioSocket.Net
 
         protected override void OnReceived(byte[] buffer, long offset, long size)
         {
-            //string message = Encoding.UTF8.GetString(buffer, (int)offset, (int)size);
-            //Console.WriteLine("Incoming: " + message);
-
             GetAudioFromAudioSocket(buffer.Take(new Range((Index)offset, (Index)(offset+size))).ToArray(), size);
-
-            // Multicast message to all connected sessions
-            //Server.Multicast(message);
-
-            // If the buffer starts with '!' the disconnect the current session
-            //if (message == "!")
-            //    Disconnect();
         }
 
         private void GetAudioFromAudioSocket(byte[] buffer, long bufferSize)
@@ -124,24 +114,23 @@ namespace AudioSocket.Net
                             UuidString = ByteArrayToString(UUID.ToArray());
                             CurrentIndex += (int)(3 + length);
 
-                            // TODO move to another file
                             // TODO get bottext from uuid
                             var ttsHelper = new TTSHelper(this, null);
                             var size = ttsHelper.ConvertTextToSpeechAsync(sentbuffer);
                             while (size > 0) // Send audio from tts
                             {
-                                    var headerBytes = new byte[] { 0x10 };
+                                var headerBytes = new byte[] { 0x10 };
 
-                                    headerBytes = headerBytes.Concat(BitConverter.GetBytes(size)).ToArray();
-                                    this.Send(headerBytes);
-                                    this.Send(sentbuffer.Take((int)size).ToArray());
-                               
+                                headerBytes = headerBytes.Concat(BitConverter.GetBytes(size)).ToArray();
+                                this.Send(headerBytes);
+                                this.Send(sentbuffer.Take((int)size).ToArray());
+
                             }
 
                             var hangupBytes = new byte[] { 0x00, 0x00, 0x00 };
                             this.Send(hangupBytes);
-                                
-                            continue;
+
+                            break;
                         }
 
                         else if (LastType == KindError)
@@ -163,6 +152,15 @@ namespace AudioSocket.Net
                             // Error
                             var hangupBytes = new byte[] { 0x00, 0x00, 0x00 };
                             this.Send(hangupBytes);
+                            break;
+                        }
+
+                        else
+                        {
+                            // Error
+                            var hangupBytes = new byte[] { 0x00, 0x00, 0x00 };
+                            this.Send(hangupBytes);
+                            break;
                         }
                     }
                 }
