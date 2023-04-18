@@ -17,7 +17,7 @@ namespace AudioSocket.Net
 
         protected override void OnError(SocketError error)
         {
-            Console.WriteLine($"AudioSocket TCP server caught an error with code {error}");
+            Console.WriteLine($"AudioSocketTTS TCP server caught an error with code {error}");
         }
     }
 
@@ -48,16 +48,17 @@ namespace AudioSocket.Net
 
         protected override void OnConnected()
         {
-            Console.WriteLine($"AudioSocket TCP session with Id {Id} connected!");
+            Console.WriteLine($"AudioSocketTTS TCP session with Id {Id} connected!");
         }
 
         protected override void OnDisconnected()
         {
-            Console.WriteLine($"AudioSocket TCP session with Id {Id} disconnected!");
+            Console.WriteLine($"AudioSocketTTS TCP session with Id {Id} disconnected!");
         }
 
         protected override void OnReceived(byte[] buffer, long offset, long size)
         {
+            Console.WriteLine($"AudioSocketTTS received request");
             GetAudioFromAudioSocket(buffer.Take(new Range((Index)offset, (Index)(offset+size))).ToArray(), size);
         }
 
@@ -114,22 +115,29 @@ namespace AudioSocket.Net
                             UuidString = ByteArrayToString(UUID.ToArray());
                             CurrentIndex += (int)(3 + length);
 
+                            Console.WriteLine(
+                                $"UUID: {UuidString}");
+
                             // TODO get bottext from uuid
                             var ttsHelper = new TTSHelper(this, null);
-                            var size = ttsHelper.ConvertTextToSpeechAsync(sentbuffer);
+                            uint size = 320;
                             while (size > 0) // Send audio from tts
                             {
+                                size = ttsHelper.ConvertTextToSpeechAsync(sentbuffer);
+                                if (size == 0)
+                                    break;
                                 var headerBytes = new byte[] { 0x10 };
 
-                                headerBytes = headerBytes.Concat(BitConverter.GetBytes(size)).ToArray();
+                                headerBytes = headerBytes.Concat(BitConverter.GetBytes(size).Take(2).Reverse()).ToArray();
                                 this.Send(headerBytes);
                                 this.Send(sentbuffer.Take((int)size).ToArray());
 
+                                Console.WriteLine($"audio buffer sent, size={size}, header: {ByteArrayToString(headerBytes)}, {sentbuffer.Length}");
                             }
 
-                            var hangupBytes = new byte[] { 0x00, 0x00, 0x00 };
-                            this.Send(hangupBytes);
-
+                            //var hangupBytes = new byte[] { 0x00, 0x00, 0x00 };
+                            //this.Send(hangupBytes);
+                            //Console.WriteLine($"hangup sent");
                             break;
                         }
 
@@ -173,7 +181,7 @@ namespace AudioSocket.Net
 
         protected override void OnError(SocketError error)
         {
-            Console.WriteLine($"AudioSocket TCP session caught an error with code {error}");
+            Console.WriteLine($"AudioSocketTTS TCP session caught an error with code {error}");
         }
 
         static decimal ToDecimal(byte[] bytes)

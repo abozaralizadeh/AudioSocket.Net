@@ -17,7 +17,7 @@ namespace AudioSocket.Net
 
         protected override void OnError(SocketError error)
         {
-            Console.WriteLine($"AudioSocket TCP server caught an error with code {error}");
+            Console.WriteLine($"AudioSocketSTT TCP server caught an error with code {error}");
         }
     }
 
@@ -51,12 +51,12 @@ namespace AudioSocket.Net
 
         protected override void OnConnected()
         {
-            Console.WriteLine($"AudioSocket TCP session with Id {Id} connected!");
+            Console.WriteLine($"AudioSocketSTT TCP session with Id {Id} connected!");
         }
 
         protected override void OnDisconnected()
         {
-            Console.WriteLine($"AudioSocket TCP session with Id {Id} disconnected!");
+            Console.WriteLine($"AudioSocketSTT TCP session with Id {Id} disconnected!");
         }
 
         protected override void OnReceived(byte[] buffer, long offset, long size)
@@ -64,6 +64,7 @@ namespace AudioSocket.Net
             //string message = Encoding.UTF8.GetString(buffer, (int)offset, (int)size);
             //Console.WriteLine("Incoming: " + message);
 
+            Console.WriteLine($"AudioSocketSTT received request");
             GetAudioFromAudioSocket(buffer.Take(new Range((Index)offset, (Index)(offset+size))).ToArray(), size);
 
             // Multicast message to all connected sessions
@@ -167,7 +168,7 @@ namespace AudioSocket.Net
 
                         else if (LastType == KindSlin)
                         {
-                            //Console.WriteLine($"Socket server received message: KindSlin 0x10");
+                            Console.WriteLine($"Socket server received message: KindSlin 0x10");
 
                             if (Remained == 0)
                             {
@@ -232,7 +233,7 @@ namespace AudioSocket.Net
 
         protected override void OnError(SocketError error)
         {
-            Console.WriteLine($"AudioSocket TCP session caught an error with code {error}");
+            Console.WriteLine($"AudioSocketSTT TCP session caught an error with code {error}");
         }
 
         static decimal ToDecimal(byte[] bytes)
