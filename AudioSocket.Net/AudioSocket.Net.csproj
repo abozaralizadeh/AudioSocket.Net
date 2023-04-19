@@ -11,7 +11,7 @@
   <ItemGroup>
     <PackageReference Include="NetCoreServer" Version="7.0.0" />
     <PackageReference Include="Microsoft.CognitiveServices.Speech" Version="1.27.0" />
-    <PackageReference Include="SIPSorcery" Version="6.0.12" />
+    <PackageReference Include="NAudio" Version="2.1.0" />
   </ItemGroup>
   <ItemGroup>
     <None Remove="Helper\" />

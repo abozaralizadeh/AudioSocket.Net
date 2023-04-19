@@ -2,7 +2,6 @@
 using Microsoft.CognitiveServices.Speech;
 using Microsoft.CognitiveServices.Speech.Audio;
 using NetCoreServer;
-using SIPSorceryMedia.Abstractions;
 using static System.Net.Mime.MediaTypeNames;
 
 namespace AudioSocket.Net.Helper

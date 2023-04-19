@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -124,6 +125,10 @@ namespace AudioSocket.Net
                             while (size > 0) // Send audio from tts
                             {
                                 size = ttsHelper.ConvertTextToSpeechAsync(sentbuffer);
+
+                                var fileBytes = File.ReadAllBytes("ttsres.wav");
+                                File.WriteAllBytes("ttsres.wav", fileBytes.Concat(sentbuffer).ToArray());
+
                                 if (size == 0)
                                     break;
                                 var headerBytes = new byte[] { 0x10 };

@@ -33,9 +33,9 @@ internal class Program
 
         // Create a new TCP chat server
         //if (serverType is "STT")
-            var AudioSocketServer1 = new AudioSocketServerSTT(address, port);
+            var AudioSocketServer1 = new AudioSocketServerSTT(address, 5055);
         //else
-            AudioSocketServer = new AudioSocketServerTTS(address, 5055);
+            AudioSocketServer = new AudioSocketServerTTS(address, port);
 
         // Start the server
         Console.Write("Server starting...");

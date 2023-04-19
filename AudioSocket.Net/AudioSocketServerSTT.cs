@@ -61,18 +61,8 @@ namespace AudioSocket.Net
 
         protected override void OnReceived(byte[] buffer, long offset, long size)
         {
-            //string message = Encoding.UTF8.GetString(buffer, (int)offset, (int)size);
-            //Console.WriteLine("Incoming: " + message);
-
-            Console.WriteLine($"AudioSocketSTT received request");
+            //Console.WriteLine($"AudioSocketSTT received request");
             GetAudioFromAudioSocket(buffer.Take(new Range((Index)offset, (Index)(offset+size))).ToArray(), size);
-
-            // Multicast message to all connected sessions
-            //Server.Multicast(message);
-
-            // If the buffer starts with '!' the disconnect the current session
-            //if (message == "!")
-            //    Disconnect();
         }
 
         private void GetAudioFromAudioSocket(byte[] buffer, long bufferSize)
@@ -128,29 +118,6 @@ namespace AudioSocket.Net
                             UuidString = ByteArrayToString(UUID.ToArray());
                             CurrentIndex += (int)(3 + length);
 
-                            // TODO move to another file
-                            // TODO get bottext from uuid
-                            var ttsHelper = new TTSHelper(this, null);
-                            while (true) // Send audio from tts
-                            {
-                                var size = ttsHelper.ConvertTextToSpeechAsync(sentbuffer);
-
-                                if (size > 0)
-                                {
-                                    var headerBytes = new byte[] { 0x10 };
-
-                                    headerBytes = headerBytes.Concat(BitConverter.GetBytes(size)).ToArray();
-                                    this.Send(headerBytes);
-                                    this.Send(sentbuffer.Take((int)size).ToArray());
-                                }
-                                else
-                                {
-                                    var hangupBytes = new byte[] { 0x00, 0x00, 0x00 };
-                                    this.Send(hangupBytes);
-                                }
-
-                            }
-
                             continue;
                         }
 
@@ -168,7 +135,7 @@ namespace AudioSocket.Net
 
                         else if (LastType == KindSlin)
                         {
-                            Console.WriteLine($"Socket server received message: KindSlin 0x10");
+                            //Console.WriteLine($"Socket server received message: KindSlin 0x10");
 
                             if (Remained == 0)
                             {
@@ -193,7 +160,8 @@ namespace AudioSocket.Net
                             }
                             // ToDo Stream the data to STT
                             sttHelper.FromStream(payloadToStream, Uuid);
-                            
+
+                            // TODO to delete
                             try
                             {
                                 var path = "sampleoutputstream.slin";

@@ -1,7 +1,11 @@
 ﻿using System.Diagnostics;
 using Microsoft.CognitiveServices.Speech;
 using Microsoft.CognitiveServices.Speech.Audio;
+using Microsoft.VisualBasic;
+using NAudio.Codecs;
+using NAudio.Wave;
 using NetCoreServer;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace AudioSocket.Net.Helper
 {
@@ -21,7 +25,8 @@ namespace AudioSocket.Net.Helper
             speechConfig = SpeechConfig.FromSubscription(configuration.GetValue<string>("CognitiveServices:SubscriptionKey"), configuration.GetValue<string>("CognitiveServices:Region"));
             speechConfig.EndpointId = configuration.GetValue<string>("CognitiveServices:EndpointId");
             speechConfig.SpeechRecognitionLanguage = configuration.GetValue<string>("CognitiveServices:SpeechRecognitionLanguage");
-            var audioFormat = AudioStreamFormat.GetWaveFormatPCM(8000, 16, 1); // Perfect for Slin
+            //var audioFormat = AudioStreamFormat.GetWaveFormatPCM(8000, 16, 1); // Perfect for Slin
+            var audioFormat = AudioStreamFormat.GetWaveFormatPCM(16000, 16, 1); // Perfect for G722
             //var audioFormat = AudioStreamFormat.GetCompressedFormat(AudioStreamContainerFormat.AMRWB); // g722
 
             audioInputStream = AudioInputStream.CreatePushStream(audioFormat);
@@ -43,14 +48,14 @@ namespace AudioSocket.Net.Helper
                 {
                     Console.WriteLine($"{Uuid} RECOGNIZED: Text={e.Result.Text}");
                     // TODO send the right hangup message
-                    var echoBytes = new byte[] { 0x01, 0x10 };
-                    if (Uuid is not null)
-                        echoBytes = echoBytes.Concat(Uuid).ToArray();
-                    else
-                        echoBytes = echoBytes.Concat(new byte[] { 0x00 }).ToArray();
-                    session.Send(echoBytes);
-                    echoBytes = new byte[] { 0x00, 0x00, 0x00 };
-                    session.Send(echoBytes);
+                    //var echoBytes = new byte[] { 0x01, 0x10 };
+                    //if (Uuid is not null)
+                    //    echoBytes = echoBytes.Concat(Uuid).ToArray();
+                    //else
+                    //    echoBytes = echoBytes.Concat(new byte[] { 0x00 }).ToArray();
+                    //session.Send(echoBytes);
+                    //echoBytes = new byte[] { 0x00, 0x00, 0x00 };
+                    //session.Send(echoBytes);
                 }
                 else if (e.Result.Reason == ResultReason.NoMatch)
                 {
@@ -87,8 +92,28 @@ namespace AudioSocket.Net.Helper
         public void FromStream(byte[] readBytes, byte[]? uuid)
         {
             Uuid = uuid;
+
+            var shouldDecodeG722 = configuration.GetValue<bool>("CognitiveServices:DecodeG722toWave");
+            if (shouldDecodeG722 is true)
+                readBytes = DecodeG722toWave(readBytes, 0, readBytes.Length);
+
             if (readBytes.Length > 0)
                 this.audioInputStream.Write(readBytes, readBytes.Length);
+        }
+
+        private byte[] DecodeG722toWave(byte[] data, int offset, int length)
+        {
+            G722CodecState _state = new G722CodecState(64000, G722Flags.None);
+            G722Codec _codec = new G722Codec();
+            if (offset != 0)
+            {
+                throw new ArgumentException("G722 does not yet support non-zero offsets");
+            }
+            int decodedLength = length * 4;
+            var outputBuffer = new byte[decodedLength];
+            var wb = new WaveBuffer(outputBuffer);
+            int decoded = _codec.Decode(_state, wb.ShortBuffer, data, length);
+            return outputBuffer;
         }
     }
 }
