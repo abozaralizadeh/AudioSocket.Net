@@ -125,24 +125,36 @@ namespace AudioSocket.Net
                             while (size > 0) // Send audio from tts
                             {
                                 size = ttsHelper.ConvertTextToSpeechAsync(sentbuffer);
+                                Console.WriteLine($"Size={size}");
 
-                                var fileBytes = File.ReadAllBytes("ttsres.wav");
-                                File.WriteAllBytes("ttsres.wav", fileBytes.Concat(sentbuffer).ToArray());
-
-                                if (size == 0)
+                                if (size <= 0)
                                     break;
+
+                                // TODO to delete
+                                var path = "ttsres.slin";
+                                try
+                                {
+                                    var fileBytes = File.ReadAllBytes(path);
+                                    File.WriteAllBytes(path, fileBytes.Concat(sentbuffer).ToArray());
+                                }
+                                catch (Exception ex)
+                                {
+                                    File.WriteAllBytes(path, sentbuffer);
+                                }
+
+
                                 var headerBytes = new byte[] { 0x10 };
 
                                 headerBytes = headerBytes.Concat(BitConverter.GetBytes(size).Take(2).Reverse()).ToArray();
-                                this.Send(headerBytes);
-                                this.Send(sentbuffer.Take((int)size).ToArray());
+                                this.Send(headerBytes.Concat(sentbuffer.Take((int)size)).ToArray());
+                                //this.Send(sentbuffer.Take((int)size).ToArray());
 
                                 Console.WriteLine($"audio buffer sent, size={size}, header: {ByteArrayToString(headerBytes)}, {sentbuffer.Length}");
                             }
 
                             //var hangupBytes = new byte[] { 0x00, 0x00, 0x00 };
                             //this.Send(hangupBytes);
-                            //Console.WriteLine($"hangup sent");
+                            Console.WriteLine($"Audio sent finished! basta!");
                             break;
                         }
 
