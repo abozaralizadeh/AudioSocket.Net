@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -17,7 +19,7 @@ namespace AudioSocket.Net
 
         protected override void OnError(SocketError error)
         {
-            Console.WriteLine($"AudioSocket TCP server caught an error with code {error}");
+            Console.WriteLine($"AudioSocketTTS TCP server caught an error with code {error}");
         }
     }
 
@@ -48,16 +50,17 @@ namespace AudioSocket.Net
 
         protected override void OnConnected()
         {
-            Console.WriteLine($"AudioSocket TCP session with Id {Id} connected!");
+            Console.WriteLine($"AudioSocketTTS TCP session with Id {Id} connected!");
         }
 
         protected override void OnDisconnected()
         {
-            Console.WriteLine($"AudioSocket TCP session with Id {Id} disconnected!");
+            Console.WriteLine($"AudioSocketTTS TCP session with Id {Id} disconnected!");
         }
 
         protected override void OnReceived(byte[] buffer, long offset, long size)
         {
+            Console.WriteLine($"AudioSocketTTS received request");
             GetAudioFromAudioSocket(buffer.Take(new Range((Index)offset, (Index)(offset+size))).ToArray(), size);
         }
 
@@ -114,27 +117,66 @@ namespace AudioSocket.Net
                             UuidString = ByteArrayToString(UUID.ToArray());
                             CurrentIndex += (int)(3 + length);
 
+                            Console.WriteLine(
+                                $"UUID: {UuidString}");
+
                             // TODO get bottext from uuid
                             var ttsHelper = new TTSHelper(this, null);
-                            var size = ttsHelper.ConvertTextToSpeechAsync(sentbuffer);
+                            uint size = 320;
                             while (size > 0) // Send audio from tts
                             {
+
+                                
+                                var x = new Stopwatch();
+                                x.Start();
+
+                                
+
+                                size = ttsHelper.ConvertTextToSpeechAsync(sentbuffer);
+                                Console.WriteLine($"Size={size}");
+
+                                if (size <= 0)
+                                    break;
+
+                                // TODO to delete
+                                var path = "ttsres.slin";
+                                try
+                                {
+                                    var fileBytes = File.ReadAllBytes(path);
+                                    File.WriteAllBytes(path, fileBytes.Concat(sentbuffer).ToArray());
+                                }
+                                catch (Exception ex)
+                                {
+                                    File.WriteAllBytes(path, sentbuffer);
+                                }
+
+
                                 var headerBytes = new byte[] { 0x10 };
 
-                                headerBytes = headerBytes.Concat(BitConverter.GetBytes(size)).ToArray();
-                                this.Send(headerBytes);
-                                this.Send(sentbuffer.Take((int)size).ToArray());
+                                headerBytes = headerBytes.Concat(BitConverter.GetBytes(size).Take(2).Reverse()).ToArray();
+                                this.Send(headerBytes.Concat(sentbuffer.Take((int)size)).ToArray());
+                                //this.Send(sentbuffer.Take((int)size).ToArray());
 
+
+
+                                Console.WriteLine($"audio buffer sent, size={size}, header: {ByteArrayToString(headerBytes)}, {sentbuffer.Length}");
+
+                                x.Stop();
+                                Console.WriteLine($"ElapsedMilliseconds: {x.ElapsedMilliseconds}");
+
+                                if (x.ElapsedMilliseconds < 20)
+                                   Task.Delay(20 - (int)x.ElapsedMilliseconds).GetAwaiter().GetResult();
                             }
 
                             var hangupBytes = new byte[] { 0x00, 0x00, 0x00 };
                             this.Send(hangupBytes);
-
+                            Console.WriteLine($"Audio sent finished! basta!");
                             break;
                         }
 
                         else if (LastType == KindError)
                         {
+                            break;
                             Console.WriteLine(
                                 $"Socket server received message: KindError 0xff");
 
@@ -149,6 +191,7 @@ namespace AudioSocket.Net
 
                         else if (LastType == KindSlin)
                         {
+                            break;
                             // Error
                             var hangupBytes = new byte[] { 0x00, 0x00, 0x00 };
                             this.Send(hangupBytes);
@@ -157,6 +200,7 @@ namespace AudioSocket.Net
 
                         else
                         {
+                            break;
                             // Error
                             var hangupBytes = new byte[] { 0x00, 0x00, 0x00 };
                             this.Send(hangupBytes);
@@ -173,7 +217,7 @@ namespace AudioSocket.Net
 
         protected override void OnError(SocketError error)
         {
-            Console.WriteLine($"AudioSocket TCP session caught an error with code {error}");
+            Console.WriteLine($"AudioSocketTTS TCP session caught an error with code {error}");
         }
 
         static decimal ToDecimal(byte[] bytes)
