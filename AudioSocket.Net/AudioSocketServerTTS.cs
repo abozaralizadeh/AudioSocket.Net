@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -124,6 +125,13 @@ namespace AudioSocket.Net
                             uint size = 320;
                             while (size > 0) // Send audio from tts
                             {
+
+                                
+                                var x = new Stopwatch();
+                                x.Start();
+
+                                
+
                                 size = ttsHelper.ConvertTextToSpeechAsync(sentbuffer);
                                 Console.WriteLine($"Size={size}");
 
@@ -149,17 +157,26 @@ namespace AudioSocket.Net
                                 this.Send(headerBytes.Concat(sentbuffer.Take((int)size)).ToArray());
                                 //this.Send(sentbuffer.Take((int)size).ToArray());
 
+
+
                                 Console.WriteLine($"audio buffer sent, size={size}, header: {ByteArrayToString(headerBytes)}, {sentbuffer.Length}");
+
+                                x.Stop();
+                                Console.WriteLine($"ElapsedMilliseconds: {x.ElapsedMilliseconds}");
+
+                                if (x.ElapsedMilliseconds < 20)
+                                   Task.Delay(20 - (int)x.ElapsedMilliseconds).GetAwaiter().GetResult();
                             }
 
-                            //var hangupBytes = new byte[] { 0x00, 0x00, 0x00 };
-                            //this.Send(hangupBytes);
+                            var hangupBytes = new byte[] { 0x00, 0x00, 0x00 };
+                            this.Send(hangupBytes);
                             Console.WriteLine($"Audio sent finished! basta!");
                             break;
                         }
 
                         else if (LastType == KindError)
                         {
+                            break;
                             Console.WriteLine(
                                 $"Socket server received message: KindError 0xff");
 
@@ -174,6 +191,7 @@ namespace AudioSocket.Net
 
                         else if (LastType == KindSlin)
                         {
+                            break;
                             // Error
                             var hangupBytes = new byte[] { 0x00, 0x00, 0x00 };
                             this.Send(hangupBytes);
@@ -182,6 +200,7 @@ namespace AudioSocket.Net
 
                         else
                         {
+                            break;
                             // Error
                             var hangupBytes = new byte[] { 0x00, 0x00, 0x00 };
                             this.Send(hangupBytes);
