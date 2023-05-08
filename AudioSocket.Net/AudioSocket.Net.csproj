@@ -12,6 +12,7 @@
     <PackageReference Include="NetCoreServer" Version="7.0.0" />
     <PackageReference Include="Microsoft.CognitiveServices.Speech" Version="1.27.0" />
     <PackageReference Include="NAudio" Version="2.1.0" />
+    <PackageReference Include="Enyim.Memcached2" Version="0.6.8" />
   </ItemGroup>
   <ItemGroup>
     <None Remove="Helper\" />

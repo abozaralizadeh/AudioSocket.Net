@@ -6,12 +6,32 @@ using System.Text;
 using System.Threading.Tasks;
 using AudioSocket.Net;
 using AudioSocket.Net.Helper;
+using Enyim.Caching.Memcached;
 using Microsoft.Extensions.Configuration;
 using NetCoreServer;
 
 internal class Program
 {
-    private static void Main(string[] args)
+    private static async Task Main(string[] args)
+    {
+        // connect to a list of memcached servers https://github.com/enyim/Memcached2
+        var cluster = new MemcachedCluster("localhost:11211");
+        // this is mandatory
+        cluster.Start();
+
+        var client = cluster.GetClient();
+        await client.SetAsync("hello", "world" );
+        await client.AppendAsync("hello", new byte[] { 1, 2, 3, 4 });
+        var x = await client.GetAsync("hello");
+
+
+        // more work
+
+        // stop the cluster
+        cluster.Dispose();
+    }
+
+    private static void Main2(string[] args)
     {
         TcpServer AudioSocketServer;
 
