@@ -13,8 +13,6 @@ internal class Program
 {
     private static void Main(string[] args)
     {
-        TcpServer AudioSocketServer;
-
         var configuration = SettingHelper.GetConfigurations();
 
         // TCP server port
@@ -27,50 +25,51 @@ internal class Program
             Console.Write("Define the server type settings!");
         }
 
-        Console.WriteLine($"TCP server port: {port}");
+        ////if (serverType is "STT")
+        //var AudioSocketServer = new AudioSocketServerSTT(address, port);
+        ////else
+        //var AudioSocketServerTTS = new AudioSocketServerTTS(address, port);
 
-        Console.WriteLine();
+        var audioSocketServerSTT = new AudioSocketServerSTT(address, port);
+        var audioSocketServerTTS = new AudioSocketServerTTS(address, 5055);
 
-        // Create a new TCP chat server
-        //if (serverType is "STT")
-            var AudioSocketServer1 = new AudioSocketServerSTT(address, port);
-        //else
-            AudioSocketServer = new AudioSocketServerTTS(address, 5055);
+        audioSocketServerSTT.Start();
+        audioSocketServerTTS.Start();
 
-        // Start the server
-        Console.Write("Server starting...");
-        AudioSocketServer1.Start();
-        AudioSocketServer.Start();
-        Console.WriteLine("Done!");
+        Worker workerObject = new Worker();
+        Thread workerThread = new Thread(() => workerObject.DoWork(audioSocketServerSTT, audioSocketServerTTS));
 
-        //Perform text input
-        for (;;)
+        // Start the worker thread.
+        workerThread.Start();
+
+        workerThread.Join();
+    }
+
+
+
+    public class Worker
+    {
+        // This method is called when the thread is started.
+        public void DoWork(AudioSocketServerSTT audioSocketServerSTT, AudioSocketServerTTS audioSocketServerTTS)
         {
-            string? line = Console.ReadLine();
-
-            // Restart the server
-            if (line == "!")
+            while (true)
             {
-                Console.Write("Server restarting...");
-                AudioSocketServer.Restart();
+                if (audioSocketServerSTT != null && !audioSocketServerSTT.IsStarted)
+                    audioSocketServerSTT.Restart();
 
-                Console.WriteLine("Done!");
-                continue;
+                if (audioSocketServerTTS != null && !audioSocketServerTTS.IsStarted)
+                    audioSocketServerTTS.Restart();
+
+                Thread.Sleep(1000);
             }
-
-            if (line == "Q")
-            {
-                break;
-            }
-
-            // Multicast admin message to all sessions
-            line = "Server is shutting down!";
-            AudioSocketServer.Multicast(line);
         }
 
-        // Stop the server
-        Console.Write("Server stopping...");
-        AudioSocketServer.Stop();
-        Console.WriteLine("Done!");
+        public void RequestStop()
+        {
+            _shouldStop = true;
+        }
+        // Keyword volatile is used as a hint to the compiler that this data
+        // member is accessed by multiple threads.
+        private volatile bool _shouldStop;
     }
 }
