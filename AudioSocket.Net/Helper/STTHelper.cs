@@ -47,6 +47,10 @@ namespace AudioSocket.Net.Helper
                 if (e.Result.Reason == ResultReason.RecognizedSpeech)
                 {
                     Console.WriteLine($"{Uuid} RECOGNIZED: Text={e.Result.Text}");
+
+                    var vvbHelper = new VvbHelper(new MemcachedHelper()); //TODO: clean code
+                    vvbHelper.SetUserMessageAsync(Uuid.ToString() , e.Result.Text).GetAwaiter().GetResult(); //TODO: fix uuid.tostring()
+
                     // TODO send the right hangup message
                     //var echoBytes = new byte[] { 0x01, 0x10 };
                     //if (Uuid is not null)

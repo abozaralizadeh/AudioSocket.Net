@@ -29,9 +29,10 @@ internal class Program
         //var AudioSocketServer = new AudioSocketServerSTT(address, port);
         ////else
         //var AudioSocketServerTTS = new AudioSocketServerTTS(address, port);
+        var cacheHelper = new MemcachedHelper();
 
         var audioSocketServerSTT = new AudioSocketServerSTT(address, port);
-        var audioSocketServerTTS = new AudioSocketServerTTS(address, 5055);
+        var audioSocketServerTTS = new AudioSocketServerTTS(address, 5055, cacheHelper);
 
         audioSocketServerSTT.Start();
         audioSocketServerTTS.Start();
@@ -44,8 +45,6 @@ internal class Program
 
         workerThread.Join();
     }
-
-
 
     public class Worker
     {
