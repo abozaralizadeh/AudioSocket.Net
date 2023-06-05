@@ -13,7 +13,6 @@ namespace AudioSocket.Net
 {
     public class AudioSocketServerTTS : TcpServer
     {
-
         private MemcachedHelper cacheHelper;
 
         public AudioSocketServerTTS(string address, int port, MemcachedHelper cacheHelper) : base(address, port) {
@@ -37,14 +36,14 @@ namespace AudioSocket.Net
             this.cacheHelper = cacheHelper;
         }
 
-        public override void OnFallback()
+        public override void OnFallbackReceived()
         {
             // Error
             var hangupBytes = new byte[] { 0x00, 0x00, 0x00 };
             this.Send(hangupBytes);
         }
 
-        public override void OnKindError(byte[] buffer, string errorCode)
+        public override void OnKindErrorReceived(byte[] buffer, string errorCode)
         {
             Console.WriteLine($"Socket server received message: KindError 0xff");
 
@@ -54,14 +53,14 @@ namespace AudioSocket.Net
             base.StopBufferProcessing();
         }
 
-        public override void OnKindHangup()
+        public override void OnKindHangupReceived()
         {
             Console.WriteLine($"Socket server received message: KindHangup 0x00");
 
             base.StopBufferProcessing();
         }
 
-        public override void OnKindID(byte[] buffer)
+        public override void OnKindIDReceived(byte[] buffer)
         {
             Console.WriteLine($"Socket server received message: KindID 0x01");
 
@@ -102,7 +101,7 @@ namespace AudioSocket.Net
             base.StopBufferProcessing();
         }
 
-        public override void OnKindSlin(byte[] buffer, byte[] payloadToStream)
+        public override void OnKindSlinReceived(byte[] buffer, byte[] payloadToStream)
         {
             //// Error
             //var hangupBytes = new byte[] { 0x00, 0x00, 0x00 };

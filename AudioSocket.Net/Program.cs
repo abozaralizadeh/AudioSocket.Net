@@ -21,9 +21,7 @@ internal class Program
         string? serverType = configuration.GetValue<string>("AudioSocket:ServerType");
 
         if (serverType is null)
-        {
             Console.Write("Define the server type settings!");
-        }
 
         ////if (serverType is "STT")
         //var AudioSocketServer = new AudioSocketServerSTT(address, port);
@@ -67,6 +65,7 @@ internal class Program
         {
             _shouldStop = true;
         }
+
         // Keyword volatile is used as a hint to the compiler that this data
         // member is accessed by multiple threads.
         private volatile bool _shouldStop;

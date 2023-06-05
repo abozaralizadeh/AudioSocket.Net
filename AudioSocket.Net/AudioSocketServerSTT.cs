@@ -21,7 +21,7 @@ namespace AudioSocket.Net
         }
     }
 
-    class AudioSocketSessionSTT  : AudioSocketBaseSession
+    public class AudioSocketSessionSTT  : AudioSocketBaseSession
     {
         private STTHelper sttHelper;
 
@@ -33,31 +33,31 @@ namespace AudioSocket.Net
             sttHelper = new STTHelper(this);
         }
 
-        public override void OnKindID(byte[] buffer)
+        public override void OnKindIDReceived(byte[] buffer)
         {
             Console.WriteLine($"Socket server received message: KindID 0x01");
         }
 
-        public override void OnKindHangup()
+        public override void OnKindHangupReceived()
         {
             Console.WriteLine($"Socket server received message: KindHangup 0x00");
 
             base.StopBufferProcessing();
         }
 
-        public override void OnKindError(byte[] buffer, string errorCode)
+        public override void OnKindErrorReceived(byte[] buffer, string errorCode)
         {
             Console.WriteLine($"Socket server received message: KindError 0xff");
 
             base.StopBufferProcessing();
         }
 
-        public override void OnKindSlin(byte[] buffer, byte[] payloadToStream)
+        public override void OnKindSlinReceived(byte[] buffer, byte[] payloadToStream)
         {
-            sttHelper.FromStream(payloadToStream, Uuid);
+            sttHelper.FromStream(payloadToStream, UuidString);
         }
 
-        public override void OnFallback()
+        public override void OnFallbackReceived()
         {
             Console.WriteLine($"Type Unrecognised");
 

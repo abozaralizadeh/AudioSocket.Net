@@ -60,7 +60,7 @@ namespace AudioSocket.Net
         public void StopBufferProcessing()
         {
             processBufferBlocked = true;
-        }
+        } 
 
         #region audiosocketmethods
 
@@ -68,31 +68,31 @@ namespace AudioSocket.Net
         /// Process AudioSocket KindId
         /// </summary>
         /// <param name="buffer"></param>
-        public abstract void OnKindID(byte[] buffer);
+        public abstract void OnKindIDReceived(byte[] buffer);
 
         /// <summary>
         /// Process AudioSocket KindHangup
         /// </summary>
         /// <param name="buffer"></param>
-        public abstract void OnKindHangup();
+        public abstract void OnKindHangupReceived();
 
         /// <summary>
         /// Process AudioSocket KindError
         /// </summary>
         /// <param name="buffer"></param>
-        public abstract void OnKindError(byte[] buffer, string errorCode);
+        public abstract void OnKindErrorReceived(byte[] buffer, string errorCode);
 
         /// <summary>
         /// Process AudioSocket KindSlin
         /// </summary>
         /// <param name="buffer"></param>
-        public abstract void OnKindSlin(byte[] buffer, byte[] payloadToStream);
+        public abstract void OnKindSlinReceived(byte[] buffer, byte[] payloadToStream);
 
         /// <summary>
         /// Process AudioSocket Fallback
         /// </summary>
         /// <param name="buffer"></param>
-        public abstract void OnFallback();
+        public abstract void OnFallbackReceived();
 
         #endregion
 
@@ -128,7 +128,7 @@ namespace AudioSocket.Net
 
                         if (LastType == KindHangup)
                         {
-                            OnKindHangup();
+                            OnKindHangupReceived();
 
                             if(processBufferBlocked)
                                 break;
@@ -142,7 +142,7 @@ namespace AudioSocket.Net
                             UuidString = ByteArrayToString(UUID.ToArray());
                             CurrentIndex += (int)(3 + length);
 
-                            OnKindID(buffer);
+                            OnKindIDReceived(buffer);
 
                             if (processBufferBlocked)
                                 break;
@@ -155,7 +155,7 @@ namespace AudioSocket.Net
                             var errorCodeString = ByteArrayToString(errorCode.ToArray());
                             CurrentIndex += (int)(3 + length);
 
-                            OnKindError(buffer, errorCodeString);
+                            OnKindErrorReceived(buffer, errorCodeString);
 
                             if (processBufferBlocked)
                                 break;
@@ -187,7 +187,7 @@ namespace AudioSocket.Net
                             }
                             //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-                            OnKindSlin(buffer, payloadToStream);
+                            OnKindSlinReceived(buffer, payloadToStream);
 
                             if (processBufferBlocked)
                                 break;
@@ -195,7 +195,7 @@ namespace AudioSocket.Net
 
                         else
                         {
-                            OnFallback();
+                            OnFallbackReceived();
 
                             if (processBufferBlocked)
                                 break;
@@ -235,7 +235,7 @@ namespace AudioSocket.Net
             return BitConverter.ToString(bytes);
         }
 
-        #endregion 
+        #endregion
     }
 }
 

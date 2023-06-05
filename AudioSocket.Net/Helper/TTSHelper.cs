@@ -34,6 +34,7 @@ namespace AudioSocket.Net.Helper
 
             var uuid = session.UuidString;
 
+            //TODO: to remove
             var text = "Ciao sono TOBi. Come posso esserti utile?";
             if (ssml is null)
                 ssml = $"""<speak version='1.0' xml:lang='it-IT'><voice xml:lang='it-IT' xml:gender='male' name='Giuseppe_5Neural'><lexicon uri='https://cvoiceproduks.blob.core.windows.net/acc-public-files/a5aa83643a5c4d3fb961fb09a6f82993/81583100-5cfd-43f7-8df4-67561d42031a.xml' />{text}</voice></speak>""";
@@ -44,7 +45,7 @@ namespace AudioSocket.Net.Helper
 
             cacheMessage = vvbHelper.GetBotMessageAsync(uuid).GetAwaiter().GetResult();
 
-            if (!string.IsNullOrEmpty(uuid))
+            if (!string.IsNullOrEmpty(cacheMessage))
             {
                var audioObj = vvbHelper.GetBotAudioObjectAsync(cacheMessage).GetAwaiter().GetResult();
 
@@ -60,8 +61,12 @@ namespace AudioSocket.Net.Helper
                 }
             }
 
+            //TODO: what we have to do if cacheMessage is empty? throw errors?
+
             if(cacheAudio == null && !string.IsNullOrEmpty(cacheMessage))
             {
+                vvbHelper.SetBotMessageByMessageHashAsync(cacheMessage).GetAwaiter().GetResult();
+
                 //retrieve audio by memcached and check if is counter
                 //if audio is null, set on memcache withcounter
 
@@ -103,13 +108,14 @@ namespace AudioSocket.Net.Helper
 
             var shouldDecodeG722 = configuration.GetValue<bool>("CognitiveServices:EncodeWavetoG722");
             if (shouldDecodeG722 is true)
-                buffer = EncodeWavetoG722(buffer, 0, buffer.Length);
+                buffer = G722Helper.EncodeWavetoG722(buffer, 0, buffer.Length);
 
             var maxCacheCounter = configuration.GetValue<int>("MemCache:CounterThreshold", 3);
 
             if(stopCacheWriting)
                 return result;
 
+            //TODO: clean and move to another method
             if (cacheCounter != null)
             {
                 if (cacheCounter.Value == maxCacheCounter)
@@ -137,25 +143,6 @@ namespace AudioSocket.Net.Helper
             }
 
             return result;
-        }
-
-        private byte[] EncodeWavetoG722(byte[] data, int offset, int length)
-        {
-            G722CodecState _state = new G722CodecState(64000, G722Flags.None);
-            G722Codec _codec = new G722Codec();
-            if (offset != 0)
-            {
-                throw new ArgumentException("G722 does not yet support non-zero offsets");
-            }
-
-            var wb = new WaveBuffer(data);
-            int encodedLength = length / 4; // or 2?
-
-            var outputBuffer = new byte[encodedLength];
-
-            int encoded = _codec.Encode(_state, outputBuffer, wb.ShortBuffer, encodedLength);
-            data = outputBuffer;
-            return outputBuffer;
         }
     }
 }

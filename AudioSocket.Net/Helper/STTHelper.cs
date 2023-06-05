@@ -17,26 +17,21 @@ namespace AudioSocket.Net.Helper
         private AudioConfig audioConfig;
         private SpeechRecognizer speechRecognizer;
         private TaskCompletionSource<int> stopRecognition;
-        private byte[]? Uuid = null;
+        private string Uuid;
 
-        public STTHelper(TcpSession session)
+        public STTHelper(AudioSocketSessionSTT session)
         {
             configuration = SettingHelper.GetConfigurations();
             speechConfig = SpeechConfig.FromSubscription(configuration.GetValue<string>("CognitiveServices:SubscriptionKey"), configuration.GetValue<string>("CognitiveServices:Region"));
             speechConfig.EndpointId = configuration.GetValue<string>("CognitiveServices:EndpointId");
             speechConfig.SpeechRecognitionLanguage = configuration.GetValue<string>("CognitiveServices:SpeechRecognitionLanguage");
-            //var audioFormat = AudioStreamFormat.GetWaveFormatPCM(8000, 16, 1); // Perfect for Slin
             var audioFormat = AudioStreamFormat.GetWaveFormatPCM(16000, 16, 1); // Perfect for G722
-            //var audioFormat = AudioStreamFormat.GetCompressedFormat(AudioStreamContainerFormat.AMRWB); // g722
 
             audioInputStream = AudioInputStream.CreatePushStream(audioFormat);
             audioConfig = AudioConfig.FromStreamInput(audioInputStream);
             speechRecognizer = new SpeechRecognizer(speechConfig, audioConfig);
-            //speechConfig.SetProperty(PropertyId.SpeechServiceConnection_InitialSilenceTimeoutMs, "1000");
-            //speechConfig.SetProperty(PropertyId.SpeechServiceResponse_PostProcessingOption, "TrueText");
-            //speechConfig.SetProperty(PropertyId.SpeechServiceResponse_StablePartialResultThreshold, "2");
-            //speechConfig.SetProperty(speechConfig. .PropertyId.SpeechServiceConnection_InitialSilenceTimeoutMs, "10000"); // 10000ms //PropertyId.SpeechServiceResponse_StablePartialResultThreshold
             stopRecognition = new TaskCompletionSource<int>();
+
             speechRecognizer.Recognizing += (s, e) =>
             {
                 Console.WriteLine($"{Uuid} RECOGNIZING: Text={e.Result.Text}");
@@ -48,8 +43,11 @@ namespace AudioSocket.Net.Helper
                 {
                     Console.WriteLine($"{Uuid} RECOGNIZED: Text={e.Result.Text}");
 
-                    var vvbHelper = new VvbHelper(new MemcachedHelper()); //TODO: clean code
-                    vvbHelper.SetUserMessageAsync(Uuid.ToString() , e.Result.Text).GetAwaiter().GetResult(); //TODO: fix uuid.tostring()
+                    if(!string.IsNullOrEmpty(Uuid) && !string.IsNullOrEmpty(e.Result.Text))
+                    {
+                        var vvbHelper = new VvbHelper(new MemcachedHelper());
+                        vvbHelper.SetUserMessageAsync(Uuid, e.Result.Text).GetAwaiter().GetResult();
+                    }
 
                     // TODO send the right hangup message
                     //var echoBytes = new byte[] { 0x01, 0x10 };
@@ -65,7 +63,6 @@ namespace AudioSocket.Net.Helper
                 {
                     Console.WriteLine($"{Uuid} NOMATCH: Speech could not be recognized.");
                 }
-                //speechRecognizer.StartContinuousRecognitionAsync();
             };
 
             speechRecognizer.Canceled += (s, e) =>
@@ -80,44 +77,27 @@ namespace AudioSocket.Net.Helper
                 }
 
                 stopRecognition.TrySetResult(0);
-                //speechRecognizer.StartContinuousRecognitionAsync();
             };
 
             speechRecognizer.SessionStopped += (s, e) =>
             {
                 Console.WriteLine($"\n{Uuid}  Session stopped event.");
                 stopRecognition.TrySetResult(0);
-                //speechRecognizer.StartContinuousRecognitionAsync();
             };
 
             speechRecognizer.StartContinuousRecognitionAsync();
         }
 
-        public void FromStream(byte[] readBytes, byte[]? uuid)
+        public void FromStream(byte[] readBytes, string uuid)
         {
-            Uuid = uuid;
+            //check if cache contains audio
 
             var shouldDecodeG722 = configuration.GetValue<bool>("CognitiveServices:DecodeG722toWave");
             if (shouldDecodeG722 is true)
-                readBytes = DecodeG722toWave(readBytes, 0, readBytes.Length);
+                readBytes = G722Helper.DecodeG722toWave(readBytes, 0, readBytes.Length);
 
             if (readBytes.Length > 0)
                 this.audioInputStream.Write(readBytes, readBytes.Length);
-        }
-
-        private byte[] DecodeG722toWave(byte[] data, int offset, int length)
-        {
-            G722CodecState _state = new G722CodecState(64000, G722Flags.None);
-            G722Codec _codec = new G722Codec();
-            if (offset != 0)
-            {
-                throw new ArgumentException("G722 does not yet support non-zero offsets");
-            }
-            int decodedLength = length * 4;
-            var outputBuffer = new byte[decodedLength];
-            var wb = new WaveBuffer(outputBuffer);
-            int decoded = _codec.Decode(_state, wb.ShortBuffer, data, length);
-            return outputBuffer;
         }
     }
 }
