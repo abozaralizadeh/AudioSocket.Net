@@ -23,20 +23,26 @@ internal class Program
         if (serverType is null)
             Console.Write("Define the server type settings!");
 
-        ////if (serverType is "STT")
-        //var AudioSocketServer = new AudioSocketServerSTT(address, port);
-        ////else
-        //var AudioSocketServerTTS = new AudioSocketServerTTS(address, port);
         var cacheHelper = new MemcachedHelper();
+        var vvbHelper = new VVBHelper(cacheHelper);
 
-        var audioSocketServerSTT = new AudioSocketServerSTT(address, port);
-        var audioSocketServerTTS = new AudioSocketServerTTS(address, 5055, cacheHelper);
+        TcpServer AudioSocketServer;
 
-        audioSocketServerSTT.Start();
-        audioSocketServerTTS.Start();
+        if (serverType is "STT")
+            AudioSocketServer = new AudioSocketServerSTT(address, port, vvbHelper);
+        else if (serverType is "TTS")
+            AudioSocketServer = new AudioSocketServerTTS(address, port, vvbHelper);
+        else
+            throw new Exception("server type is unknown," +
+                "please set the 'AudioSocket:ServerType'" +
+                "with one of the following options: " +
+                "\n- TTS" +
+                "\n- STT");
+
+        AudioSocketServer.Start();
 
         Worker workerObject = new Worker();
-        Thread workerThread = new Thread(() => workerObject.DoWork(audioSocketServerSTT, audioSocketServerTTS));
+        Thread workerThread = new Thread(() => workerObject.DoWork(AudioSocketServer));
 
         // Start the worker thread.
         workerThread.Start();
@@ -47,15 +53,12 @@ internal class Program
     public class Worker
     {
         // This method is called when the thread is started.
-        public void DoWork(AudioSocketServerSTT audioSocketServerSTT, AudioSocketServerTTS audioSocketServerTTS)
+        public void DoWork(TcpServer AudioSocketServer)
         {
             while (true)
             {
-                if (audioSocketServerSTT != null && !audioSocketServerSTT.IsStarted)
-                    audioSocketServerSTT.Restart();
-
-                if (audioSocketServerTTS != null && !audioSocketServerTTS.IsStarted)
-                    audioSocketServerTTS.Restart();
+                if (AudioSocketServer != null && !AudioSocketServer.IsStarted)
+                    AudioSocketServer.Restart();
 
                 Thread.Sleep(1000);
             }

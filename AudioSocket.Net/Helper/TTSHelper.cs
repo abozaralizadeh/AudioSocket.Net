@@ -13,7 +13,7 @@ namespace AudioSocket.Net.Helper
     public class TTSHelper
     {
         private readonly IConfiguration configuration;
-        private readonly VvbHelper vvbHelper;
+        private readonly VVBHelper vvbHelper;
 
         private PullAudioOutputStream pullAudioOutputStream;
         private int? cacheCounter;
@@ -23,7 +23,7 @@ namespace AudioSocket.Net.Helper
         private bool enableAppend;
         private MemoryStream? cacheAudioStream;
 
-        public TTSHelper(AudioSocketSessionTTS session, string ssml)
+        public TTSHelper(AudioSocketSessionTTS session, VVBHelper vvbHelper, string? ssml = null)
         {
             enableAppend = false;
             stopCacheWriting = false;
@@ -38,8 +38,6 @@ namespace AudioSocket.Net.Helper
             var text = "Ciao sono TOBi. Come posso esserti utile?";
             if (ssml is null)
                 ssml = $"""<speak version='1.0' xml:lang='it-IT'><voice xml:lang='it-IT' xml:gender='male' name='Giuseppe_5Neural'><lexicon uri='https://cvoiceproduks.blob.core.windows.net/acc-public-files/a5aa83643a5c4d3fb961fb09a6f82993/81583100-5cfd-43f7-8df4-67561d42031a.xml' />{text}</voice></speak>""";
-
-            vvbHelper = new VvbHelper(new MemcachedHelper()); //TODO: clean code
 
             vvbHelper.SetBotMessageAsync(uuid, ssml).GetAwaiter().GetResult(); //TODO: to remove!
 

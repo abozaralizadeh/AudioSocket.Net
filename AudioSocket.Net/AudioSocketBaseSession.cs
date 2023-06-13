@@ -94,6 +94,29 @@ namespace AudioSocket.Net
         /// <param name="buffer"></param>
         public abstract void OnFallbackReceived();
 
+        /// <summary>
+        /// SendHangupMessage
+        /// </summary>
+        /// <param name="buffer"></param>
+        public virtual void SendHangupMessage() {
+            var bytes = new byte[] { 0x00, 0x00, 0x00 };
+            this.Send(bytes);
+        }
+
+        /// <summary>
+        /// SendKindId
+        /// </summary>
+        /// <param name="buffer"></param>
+        public virtual void SendKindId()
+        {
+            var bytes = new byte[] { 0x01, 0x10 };
+            if (Uuid is not null)
+                bytes = bytes.Concat(Uuid).ToArray();
+            else
+                bytes = bytes.Concat(new byte[] { 0x00 }).ToArray();
+            this.Send(bytes);
+        }
+
         #endregion
 
         #region privatemethods
@@ -139,7 +162,7 @@ namespace AudioSocket.Net
                             var length = ByteArrayToDecimal(buffer.Take(new Range((int)(1 + CurrentIndex), (int)(3 + CurrentIndex))).ToArray());
                             var UUID = buffer.Take(new Range((int)(3 + CurrentIndex), (Index)(3 + CurrentIndex + length)));
                             Uuid = UUID.ToArray();
-                            UuidString = ByteArrayToString(UUID.ToArray());
+                            UuidString = ByteArrayToString(Uuid);
                             CurrentIndex += (int)(3 + length);
 
                             OnKindIDReceived(buffer);

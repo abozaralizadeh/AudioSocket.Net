@@ -12,7 +12,7 @@ namespace AudioSocket.Net.Helper
         public MemcachedHelper()
         {
             configuration = SettingHelper.GetConfigurations();
-            var memCachedEnpoints = configuration.GetValue<string>("Cache:Endpoints");
+            var memCachedEnpoints = configuration.GetValue<string>("Memcached:Endpoints");
             memcachedCluster = new MemcachedCluster(memCachedEnpoints);
             memcachedCluster.Start();
             memcachedClient = memcachedCluster.GetClient();
