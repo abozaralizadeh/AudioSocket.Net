@@ -13,13 +13,13 @@ namespace AudioSocket.Net
 {
     public class AudioSocketServerTTS : TcpServer
     {
-        private MemcachedHelper cacheHelper;
+        private VVBHelper vvbHelper;
 
-        public AudioSocketServerTTS(string address, int port, MemcachedHelper cacheHelper) : base(address, port) {
-            this.cacheHelper = cacheHelper;
+        public AudioSocketServerTTS(string address, int port, VVBHelper vvbHelper) : base(address, port) {
+            this.vvbHelper = vvbHelper;
         }
 
-        protected override TcpSession CreateSession() { return new AudioSocketSessionTTS(this, cacheHelper); }
+        protected override TcpSession CreateSession() { return new AudioSocketSessionTTS(this, vvbHelper); }
 
         protected override void OnError(SocketError error)
         {
@@ -29,27 +29,23 @@ namespace AudioSocket.Net
 
     public class AudioSocketSessionTTS : AudioSocketBaseSession
     {
-        private MemcachedHelper cacheHelper;
+        private VVBHelper vvbHelper;
+        private TTSHelper? ttsHelper;
 
-        public AudioSocketSessionTTS(TcpServer server, MemcachedHelper cacheHelper) : base(server)
+        public AudioSocketSessionTTS(TcpServer server, VVBHelper vvbHelper) : base(server)
         {
-            this.cacheHelper = cacheHelper;
+            this.vvbHelper = vvbHelper;
         }
 
         public override void OnFallbackReceived()
         {
             // Error
-            var hangupBytes = new byte[] { 0x00, 0x00, 0x00 };
-            this.Send(hangupBytes);
+            this.SendHangupMessage();
         }
 
         public override void OnKindErrorReceived(byte[] buffer, string errorCode)
         {
             Console.WriteLine($"Socket server received message: KindError 0xff");
-
-            //var hangupBytes = new byte[] { 0x00, 0x00, 0x00 };
-            //this.Send(hangupBytes);
-
             base.StopBufferProcessing();
         }
 
@@ -66,13 +62,13 @@ namespace AudioSocket.Net
 
             Console.WriteLine($"UUID: {UuidString}");
 
-            var ttsHelper = new TTSHelper(this, null);
+            ttsHelper = new TTSHelper(this, vvbHelper);
 
             uint size = 320;
             while (size > 0) // Send audio from tts
             {
-                var x = new Stopwatch();
-                x.Start();
+                var delta = new Stopwatch();
+                delta.Start();
 
                 size = ttsHelper.ConvertTextToSpeechAsync(Sentbuffer);
                 Console.WriteLine($"Size={size}");
@@ -87,26 +83,21 @@ namespace AudioSocket.Net
 
                 Console.WriteLine($"audio buffer sent, size={size}, header: {ByteArrayToString(headerBytes)}, {Sentbuffer.Length}");
 
-                x.Stop();
-                Console.WriteLine($"ElapsedMilliseconds: {x.ElapsedMilliseconds}");
+                delta.Stop();
+                Console.WriteLine($"ElapsedMilliseconds: {delta.ElapsedMilliseconds}");
 
-                if (x.ElapsedMilliseconds < 20)
-                    Task.Delay(20 - (int)x.ElapsedMilliseconds).GetAwaiter().GetResult();
+                if (delta.ElapsedMilliseconds < 20)
+                    Task.Delay(20 - (int) delta.ElapsedMilliseconds).GetAwaiter().GetResult();
             }
 
-            var hangupBytes = new byte[] { 0x00, 0x00, 0x00 };
-            this.Send(hangupBytes);
-            Console.WriteLine($"Audio sent finished! basta!");
+            this.SendHangupMessage();
+            Console.WriteLine($"TTS Audio sent finished!");
 
             base.StopBufferProcessing();
         }
 
         public override void OnKindSlinReceived(byte[] buffer, byte[] payloadToStream)
         {
-            //// Error
-            //var hangupBytes = new byte[] { 0x00, 0x00, 0x00 };
-            //this.Send(hangupBytes);
-
             base.StopBufferProcessing();
         }
     }

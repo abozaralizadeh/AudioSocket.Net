@@ -17,15 +17,17 @@ namespace AudioSocket.Net.Helper
         private AudioConfig audioConfig;
         private SpeechRecognizer speechRecognizer;
         private TaskCompletionSource<int> stopRecognition;
-        private string Uuid;
 
-        public STTHelper(AudioSocketSessionSTT session)
+        public STTHelper(AudioSocketSessionSTT session, VVBHelper vvbHelper)
         {
             configuration = SettingHelper.GetConfigurations();
             speechConfig = SpeechConfig.FromSubscription(configuration.GetValue<string>("CognitiveServices:SubscriptionKey"), configuration.GetValue<string>("CognitiveServices:Region"));
             speechConfig.EndpointId = configuration.GetValue<string>("CognitiveServices:EndpointId");
             speechConfig.SpeechRecognitionLanguage = configuration.GetValue<string>("CognitiveServices:SpeechRecognitionLanguage");
-            var audioFormat = AudioStreamFormat.GetWaveFormatPCM(16000, 16, 1); // Perfect for G722
+            var InputAudioSamplePerSecond = configuration.GetValue<uint>("CognitiveServices:InputAudioSamplePerSecond", 16000);
+            var InputAudioBitPerSample = configuration.GetValue<byte>("CognitiveServices:InputAudioBitPerSample", 16);
+            var InputAudioChannels = configuration.GetValue<byte>("CognitiveServices:InputAudioChannels", 1);
+            var audioFormat = AudioStreamFormat.GetWaveFormatPCM(InputAudioSamplePerSecond, InputAudioBitPerSample, InputAudioChannels); // Default is Perfect for G722
 
             audioInputStream = AudioInputStream.CreatePushStream(audioFormat);
             audioConfig = AudioConfig.FromStreamInput(audioInputStream);
@@ -34,40 +36,32 @@ namespace AudioSocket.Net.Helper
 
             speechRecognizer.Recognizing += (s, e) =>
             {
-                Console.WriteLine($"{Uuid} RECOGNIZING: Text={e.Result.Text}");
+                Console.WriteLine($"{session.UuidString} RECOGNIZING: Text={e.Result.Text}");
             };
 
             speechRecognizer.Recognized += (s, e) =>
             {
                 if (e.Result.Reason == ResultReason.RecognizedSpeech)
                 {
-                    Console.WriteLine($"{Uuid} RECOGNIZED: Text={e.Result.Text}");
+                    Console.WriteLine($"{session.UuidString} RECOGNIZED: Text={e.Result.Text}");
 
-                    if(!string.IsNullOrEmpty(Uuid) && !string.IsNullOrEmpty(e.Result.Text))
+                    if(!string.IsNullOrEmpty(session.UuidString) && !string.IsNullOrEmpty(e.Result.Text))
                     {
-                        var vvbHelper = new VvbHelper(new MemcachedHelper());
-                        vvbHelper.SetUserMessageAsync(Uuid, e.Result.Text).GetAwaiter().GetResult();
+                        vvbHelper.SetUserMessageAsync(session.UuidString, e.Result.Text).GetAwaiter().GetResult();
                     }
 
                     // TODO send the right hangup message
-                    //var echoBytes = new byte[] { 0x01, 0x10 };
-                    //if (Uuid is not null)
-                    //    echoBytes = echoBytes.Concat(Uuid).ToArray();
-                    //else
-                    //    echoBytes = echoBytes.Concat(new byte[] { 0x00 }).ToArray();
-                    //session.Send(echoBytes);
-                    //echoBytes = new byte[] { 0x00, 0x00, 0x00 };
-                    //session.Send(echoBytes);
+                    session.SendHangupMessage();
                 }
                 else if (e.Result.Reason == ResultReason.NoMatch)
                 {
-                    Console.WriteLine($"{Uuid} NOMATCH: Speech could not be recognized.");
+                    Console.WriteLine($"{session.UuidString} NOMATCH: Speech could not be recognized.");
                 }
             };
 
             speechRecognizer.Canceled += (s, e) =>
             {
-                Console.WriteLine($"{Uuid} CANCELED: Reason={e.Reason}");
+                Console.WriteLine($"{session.UuidString} CANCELED: Reason={e.Reason}");
 
                 if (e.Reason == CancellationReason.Error)
                 {
@@ -81,17 +75,15 @@ namespace AudioSocket.Net.Helper
 
             speechRecognizer.SessionStopped += (s, e) =>
             {
-                Console.WriteLine($"\n{Uuid}  Session stopped event.");
+                Console.WriteLine($"\n{session.UuidString}  Session stopped event.");
                 stopRecognition.TrySetResult(0);
             };
 
             speechRecognizer.StartContinuousRecognitionAsync();
         }
 
-        public void FromStream(byte[] readBytes, string uuid)
+        public void FromStream(byte[] readBytes)
         {
-            //check if cache contains audio
-
             var shouldDecodeG722 = configuration.GetValue<bool>("CognitiveServices:DecodeG722toWave");
             if (shouldDecodeG722 is true)
                 readBytes = G722Helper.DecodeG722toWave(readBytes, 0, readBytes.Length);
