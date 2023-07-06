@@ -16,7 +16,6 @@ namespace AudioSocket.Net.Helper
                       .AddEnvironmentVariables()
                       .AddUserSecrets(Assembly.GetExecutingAssembly(), true);
 
-
             return builder.Build();
         }
     }

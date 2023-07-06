@@ -13,8 +13,6 @@ internal class Program
 {
     private static void Main(string[] args)
     {
-        TcpServer AudioSocketServer;
-
         var configuration = SettingHelper.GetConfigurations();
 
         // TCP server port
@@ -23,54 +21,56 @@ internal class Program
         string? serverType = configuration.GetValue<string>("AudioSocket:ServerType");
 
         if (serverType is null)
-        {
             Console.Write("Define the server type settings!");
-        }
 
-        Console.WriteLine($"TCP server port: {port}");
+        var cacheHelper = new MemcachedHelper();
+        var vvbHelper = new VVBHelper(cacheHelper);
 
-        Console.WriteLine();
+        TcpServer AudioSocketServer;
 
-        // Create a new TCP chat server
-        //if (serverType is "STT")
-            var AudioSocketServer1 = new AudioSocketServerSTT(address, port);
-        //else
-            AudioSocketServer = new AudioSocketServerTTS(address, 5055);
+        if (serverType is "STT")
+            AudioSocketServer = new AudioSocketServerSTT(address, port, vvbHelper);
+        else if (serverType is "TTS")
+            AudioSocketServer = new AudioSocketServerTTS(address, port, vvbHelper);
+        else
+            throw new Exception("server type is unknown," +
+                "please set the 'AudioSocket:ServerType'" +
+                "with one of the following options: " +
+                "\n- TTS" +
+                "\n- STT");
 
-        // Start the server
-        Console.Write("Server starting...");
-        AudioSocketServer1.Start();
         AudioSocketServer.Start();
-        Console.WriteLine("Done!");
 
-        //Perform text input
-        for (;;)
+        Worker workerObject = new Worker();
+        Thread workerThread = new Thread(() => workerObject.DoWork(AudioSocketServer));
+
+        // Start the worker thread.
+        workerThread.Start();
+
+        workerThread.Join();
+    }
+
+    public class Worker
+    {
+        // This method is called when the thread is started.
+        public void DoWork(TcpServer AudioSocketServer)
         {
-            string? line = Console.ReadLine();
-
-            // Restart the server
-            if (line == "!")
+            while (true)
             {
-                Console.Write("Server restarting...");
-                AudioSocketServer.Restart();
+                if (AudioSocketServer != null && !AudioSocketServer.IsStarted)
+                    AudioSocketServer.Restart();
 
-                Console.WriteLine("Done!");
-                continue;
+                Thread.Sleep(1000);
             }
-
-            if (line == "Q")
-            {
-                break;
-            }
-
-            // Multicast admin message to all sessions
-            line = "Server is shutting down!";
-            AudioSocketServer.Multicast(line);
         }
 
-        // Stop the server
-        Console.Write("Server stopping...");
-        AudioSocketServer.Stop();
-        Console.WriteLine("Done!");
+        public void RequestStop()
+        {
+            _shouldStop = true;
+        }
+
+        // Keyword volatile is used as a hint to the compiler that this data
+        // member is accessed by multiple threads.
+        private volatile bool _shouldStop;
     }
 }
