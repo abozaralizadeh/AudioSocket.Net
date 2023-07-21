@@ -35,7 +35,8 @@ namespace AudioSocket.Net.Helper
             var uuid = session.UuidString;
 
             //TODO: to remove
-            var text = "Ciao sono TOBi. Come posso esserti utile?";
+            var text = "Ciao a tutti! Sono una intelligenza artificiale e sarò felice di scrivere un lungo testo in italiano per voi. L'Italia è un paese meraviglioso con una cultura e una storia incredibili. Il cibo italiano è famoso in tutto il mondo, e ci sono così tanti posti bellissimi da visitare, dalle città d'arte come Firenze e Roma alle coste mozzafiato come la Costiera Amalfitana e la Sardegna.\n\nUno degli aspetti più affascinanti dell'Italia è la sua storia. Il paese ha una lunga tradizione artistica, e in ogni angolo si possono trovare capolavori come quadri, sculture e edifici antichi. L'Italia è stata anche il centro della civiltà romana, e visite ai luoghi storici come il Colosseo e il Foro Romano possono far rivivere questo passato glorioso.";
+            
             if (ssml is null)
                 ssml = $"""<speak version='1.0' xml:lang='it-IT'><voice xml:lang='it-IT' xml:gender='male' name='Giuseppe_5Neural'><lexicon uri='https://cvoiceproduks.blob.core.windows.net/acc-public-files/a5aa83643a5c4d3fb961fb09a6f82993/81583100-5cfd-43f7-8df4-67561d42031a.xml' />{text}</voice></speak>""";
 
