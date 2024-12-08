@@ -13,7 +13,7 @@ namespace AudioSocket.Net.Helper
     public class TTSHelper
     {
         private readonly IConfiguration configuration;
-        private readonly VVBHelper vvbHelper;
+        private readonly BridgeHelper bridgeHelper;
 
         private PullAudioOutputStream pullAudioOutputStream;
         private int? cacheCounter;
@@ -23,7 +23,7 @@ namespace AudioSocket.Net.Helper
         private bool enableAppend;
         private MemoryStream? cacheAudioStream;
 
-        public TTSHelper(AudioSocketSessionTTS session, VVBHelper vvbHelper, string? ssml = null)
+        public TTSHelper(AudioSocketSessionTTS session, BridgeHelper bridgeHelper, string? ssml = null)
         {
             enableAppend = false;
             stopCacheWriting = false;
@@ -40,13 +40,13 @@ namespace AudioSocket.Net.Helper
             if (ssml is null)
                 ssml = $"""<speak version='1.0' xml:lang='it-IT'><voice xml:lang='it-IT' xml:gender='male' name='Neural'><lexicon uri='' />{text}</voice></speak>""";
 
-            vvbHelper.SetBotMessageAsync(uuid, ssml).GetAwaiter().GetResult(); //TODO: to remove!
+            bridgeHelper.SetBotMessageAsync(uuid, ssml).GetAwaiter().GetResult(); //TODO: to remove!
 
-            cacheMessage = vvbHelper.GetBotMessageAsync(uuid).GetAwaiter().GetResult();
+            cacheMessage = bridgeHelper.GetBotMessageAsync(uuid).GetAwaiter().GetResult();
 
             if (!string.IsNullOrEmpty(cacheMessage))
             {
-               var audioObj = vvbHelper.GetBotAudioObjectAsync(cacheMessage).GetAwaiter().GetResult();
+               var audioObj = bridgeHelper.GetBotAudioObjectAsync(cacheMessage).GetAwaiter().GetResult();
 
                 if (audioObj != null)
                 {
@@ -64,7 +64,7 @@ namespace AudioSocket.Net.Helper
 
             if(cacheAudio == null && !string.IsNullOrEmpty(cacheMessage))
             {
-                vvbHelper.SetBotMessageByMessageHashAsync(cacheMessage).GetAwaiter().GetResult();
+                bridgeHelper.SetBotMessageByMessageHashAsync(cacheMessage).GetAwaiter().GetResult();
 
                 //retrieve audio by memcached and check if is counter
                 //if audio is null, set on memcache withcounter
@@ -121,23 +121,23 @@ namespace AudioSocket.Net.Helper
                 {
                     if (enableAppend)
                     {
-                        vvbHelper.AppendBotAudioAsync(cacheMessage, buffer).GetAwaiter().GetResult();
+                        bridgeHelper.AppendBotAudioAsync(cacheMessage, buffer).GetAwaiter().GetResult();
                     }
                     else
                     {
-                        vvbHelper.SetBotAudioAsync(cacheMessage, buffer).GetAwaiter().GetResult();
+                        bridgeHelper.SetBotAudioAsync(cacheMessage, buffer).GetAwaiter().GetResult();
                         enableAppend = true;
                     }
                 }
                 else
                 {
-                    vvbHelper.SetAudioCounterAsync(cacheMessage, cacheCounter.Value + 1).GetAwaiter().GetResult();
+                    bridgeHelper.SetAudioCounterAsync(cacheMessage, cacheCounter.Value + 1).GetAwaiter().GetResult();
                     stopCacheWriting = true;
                 }
             }
             else if(cacheCounter == null && cacheAudio == null)
             {
-                vvbHelper.SetAudioCounterAsync(cacheMessage, 1).GetAwaiter().GetResult();
+                bridgeHelper.SetAudioCounterAsync(cacheMessage, 1).GetAwaiter().GetResult();
                 stopCacheWriting = true;
             }
 

@@ -11,12 +11,12 @@ namespace AudioSocket.Net
 {
     public class AudioSocketServerSTT : TcpServer
     {
-        protected VVBHelper vvbHelper;
-        public AudioSocketServerSTT(string address, int port, VVBHelper vvbHelper) : base(address, port) {
-            this.vvbHelper = vvbHelper;
+        protected BridgeHelper bridgeHelper;
+        public AudioSocketServerSTT(string address, int port, BridgeHelper bridgeHelper) : base(address, port) {
+            this.bridgeHelper = bridgeHelper;
         }
 
-        protected override TcpSession CreateSession() { return new AudioSocketSessionSTT(this, vvbHelper); }
+        protected override TcpSession CreateSession() { return new AudioSocketSessionSTT(this, bridgeHelper); }
 
         protected override void OnError(SocketError error)
         {
@@ -28,12 +28,12 @@ namespace AudioSocket.Net
     {
         private STTHelper sttHelper;
 
-        public AudioSocketSessionSTT(TcpServer server, VVBHelper vvbHelper) : base(server) {
+        public AudioSocketSessionSTT(TcpServer server, BridgeHelper bridgeHelper) : base(server) {
             CurrentIndex = 0;
             Remained = 0;
             LastType = null;
             UuidString = string.Empty;
-            sttHelper = new STTHelper(this, vvbHelper);
+            sttHelper = new STTHelper(this, bridgeHelper);
         }
 
         public override void OnKindIDReceived(byte[] buffer)

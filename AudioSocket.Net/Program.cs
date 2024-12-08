@@ -24,14 +24,14 @@ internal class Program
             Console.Write("Define the server type settings!");
 
         var cacheHelper = new MemcachedHelper();
-        var vvbHelper = new VVBHelper(cacheHelper);
+        var bridgeHelper = new BridgeHelper(cacheHelper);
 
         TcpServer AudioSocketServer;
 
         if (serverType is "STT")
-            AudioSocketServer = new AudioSocketServerSTT(address, port, vvbHelper);
+            AudioSocketServer = new AudioSocketServerSTT(address, port, bridgeHelper);
         else if (serverType is "TTS")
-            AudioSocketServer = new AudioSocketServerTTS(address, port, vvbHelper);
+            AudioSocketServer = new AudioSocketServerTTS(address, port, bridgeHelper);
         else
             throw new Exception("server type is unknown," +
                 "please set the 'AudioSocket:ServerType'" +

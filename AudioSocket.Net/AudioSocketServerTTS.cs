@@ -13,13 +13,13 @@ namespace AudioSocket.Net
 {
     public class AudioSocketServerTTS : TcpServer
     {
-        private VVBHelper vvbHelper;
+        private BridgeHelper bridgeHelper;
 
-        public AudioSocketServerTTS(string address, int port, VVBHelper vvbHelper) : base(address, port) {
-            this.vvbHelper = vvbHelper;
+        public AudioSocketServerTTS(string address, int port, BridgeHelper bridgeHelper) : base(address, port) {
+            this.bridgeHelper = bridgeHelper;
         }
 
-        protected override TcpSession CreateSession() { return new AudioSocketSessionTTS(this, vvbHelper); }
+        protected override TcpSession CreateSession() { return new AudioSocketSessionTTS(this, bridgeHelper); }
 
         protected override void OnError(SocketError error)
         {
@@ -29,12 +29,12 @@ namespace AudioSocket.Net
 
     public class AudioSocketSessionTTS : AudioSocketBaseSession
     {
-        private VVBHelper vvbHelper;
+        private BridgeHelper bridgeHelper;
         private TTSHelper? ttsHelper;
 
-        public AudioSocketSessionTTS(TcpServer server, VVBHelper vvbHelper) : base(server)
+        public AudioSocketSessionTTS(TcpServer server, BridgeHelper bridgeHelper) : base(server)
         {
-            this.vvbHelper = vvbHelper;
+            this.bridgeHelper = bridgeHelper;
         }
 
         public override void OnFallbackReceived()
@@ -62,7 +62,7 @@ namespace AudioSocket.Net
 
             Console.WriteLine($"UUID: {UuidString}");
 
-            ttsHelper = new TTSHelper(this, vvbHelper);
+            ttsHelper = new TTSHelper(this, bridgeHelper);
 
             uint size = 320;
             while (size > 0) // Send audio from tts

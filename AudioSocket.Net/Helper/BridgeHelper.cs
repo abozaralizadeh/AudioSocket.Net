@@ -6,11 +6,11 @@ using Enyim.Caching.Memcached;
 
 namespace AudioSocket.Net.Helper
 {
-    public class VVBHelper
+    public class BridgeHelper
     {
         private readonly MemcachedHelper cacheHelper;
 
-        public VVBHelper(MemcachedHelper cacheHelper)
+        public BridgeHelper(MemcachedHelper cacheHelper)
         {
             this.cacheHelper = cacheHelper;
         }

@@ -18,7 +18,7 @@ namespace AudioSocket.Net.Helper
         private SpeechRecognizer speechRecognizer;
         private TaskCompletionSource<int> stopRecognition;
 
-        public STTHelper(AudioSocketSessionSTT session, VVBHelper vvbHelper)
+        public STTHelper(AudioSocketSessionSTT session, BridgeHelper bridgeHelper)
         {
             configuration = SettingHelper.GetConfigurations();
             speechConfig = SpeechConfig.FromSubscription(configuration.GetValue<string>("CognitiveServices:SubscriptionKey"), configuration.GetValue<string>("CognitiveServices:Region"));
@@ -47,7 +47,7 @@ namespace AudioSocket.Net.Helper
 
                     if(!string.IsNullOrEmpty(session.UuidString) && !string.IsNullOrEmpty(e.Result.Text))
                     {
-                        vvbHelper.SetUserMessageAsync(session.UuidString, e.Result.Text).GetAwaiter().GetResult();
+                        bridgeHelper.SetUserMessageAsync(session.UuidString, e.Result.Text).GetAwaiter().GetResult();
                     }
 
                     // TODO send the right hangup message
